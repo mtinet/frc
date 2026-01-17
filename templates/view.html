@@ -294,10 +294,16 @@
         });
 
         document.addEventListener('click', function() {
+            // 전체화면 시도
             if (!document.fullscreenElement) {
                 document.documentElement.requestFullscreen().catch(err => {
                     console.log(`Error: ${err.message}`);
                 });
+            }
+            // 현재 재생 중인 비디오가 있다면 소리 켜기
+            const video = document.querySelector('video');
+            if (video) {
+                video.muted = false;
             }
         });
     </script>
