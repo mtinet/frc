@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRC Display - View Box</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .container {
+            display: grid;
+            grid-template-rows: auto 1fr;
+            height: 100vh;
+        }
+
+        .score-bar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px 50px;
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            gap: 30px;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            z-index: 10;
+        }
+
+        .team-display {
+            text-align: center;
+        }
+
+        .team-name {
+            font-size: 1.5em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .team-score {
+            font-size: 4em;
+            font-weight: bold;
+            text-shadow: 2px 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .vs-divider {
+            font-size: 2em;
+            font-weight: bold;
+            opacity: 0.8;
+        }
+
+        .media-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #111;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .media-content {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .youtube-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .youtube-container iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        .image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .image-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #666;
+            font-size: 2em;
+        }
+
+        .empty-state::before {
+            content: "📺";
+            display: block;
+            font-size: 4em;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .media-content > * {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        /* 전체화면 모드 스타일 */
+        .fullscreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 9999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 점수 바 -->
+        <div class="score-bar">
+            <div class="team-display">
+                <div class="team-name" id="team1-name">Team 1</div>
+                <div class="team-score" id="team1-score">0</div>
+            </div>
+            <div class="vs-divider">VS</div>
+            <div class="team-display">
+                <div class="team-name" id="team2-name">Team 2</div>
+                <div class="team-score" id="team2-score">0</div>
+            </div>
+        </div>
+
+        <!-- 미디어 컨테이너 -->
+        <div class="media-container">
+            <div class="media-content" id="media-content">
+                <div class="empty-state">대기 중...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentState = {
+            score: { team1: 0, team2: 0, team1_name: 'Team 1', team2_name: 'Team 2' },
+            current_media: { type: null, url: null, youtube_id: null }
+        };
+        
+        let previousState = JSON.parse(JSON.stringify(currentState)); 
+
+        // 상태 동기화
+        async function syncState() {
+            try {
+                const response = await fetch('/api/state');
+                currentState = await response.json();
+                updateDisplay();
+            } catch (error) {
+                console.error('상태 동기화 실패:', error);
+            }
+        }
+
+        // 미디어가 변경되었는지 확인
+        function mediaChanged() {
+            const prev = previousState.current_media;
+            const curr = currentState.current_media;
+            
+            return prev.type !== curr.type || 
+                   prev.youtube_id !== curr.youtube_id || 
+                   prev.url !== curr.url;
+        }
+
+        // 점수가 변경되었는지 확인
+        function scoreChanged() {
+            const prev = previousState.score;
+            const curr = currentState.score;
+            
+            return prev.team1 !== curr.team1 ||
+                   prev.team2 !== curr.team2 ||
+                   prev.team1_name !== curr.team1_name ||
+                   prev.team2_name !== curr.team2_name;
+        }
+
+        // 디스플레이 업데이트
+        function updateDisplay() {
+            // 점수 업데이트 (변경된 경우에만)
+            if (scoreChanged()) {
+                document.getElementById('team1-name').textContent = currentState.score.team1_name || 'Team 1';
+                document.getElementById('team2-name').textContent = currentState.score.team2_name || 'Team 2';
+                document.getElementById('team1-score').textContent = currentState.score.team1 || 0;
+                document.getElementById('team2-score').textContent = currentState.score.team2 || 0;
+            }
+
+            // 미디어 업데이트 (변경된 경우에만)
+            if (mediaChanged()) {
+                const mediaContent = document.getElementById('media-content');
+                const media = currentState.current_media;
+
+                if (media.type === 'youtube' && media.youtube_id) {
+                    mediaContent.innerHTML = `
+                        <div class="youtube-container">
+                            <iframe 
+                                src="https://www.youtube.com/embed/${media.youtube_id}?autoplay=1&mute=0&controls=0&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${window.location.origin}"
+                                frameborder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                allow="autoplay; encrypted-media"
+                                allowfullscreen>
+                            </iframe>
+                        </div>
+                    `;
+                } else if (media.type === 'image' && media.url) {
+                    mediaContent.innerHTML = `
+                        <div class="image-container">
+                            <img src="${media.url}" alt="Display Image">
+                        </div>
+                    `;
+                } else if (media.type === 'video' && media.url) {
+                    mediaContent.innerHTML = `
+                        <div class="image-container">
+                            <video src="${media.url}" autoplay muted loop style="width: 100%; height: 100%; object-fit: contain;"></video>
+                        </div>
+                    `;
+                } else {
+                    mediaContent.innerHTML = '<div class="empty-state">대기 중...</div>';
+                }
+            }
+
+            // 이전 상태 업데이트
+            previousState = JSON.parse(JSON.stringify(currentState));
+        }
+
+        // 전체화면 토글 및 이벤트 리스너들...
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'F11') {
+                e.preventDefault();
+                if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                } else {
+                    document.exitFullscreen();
+                }
+            }
+        });
+
+        document.addEventListener('dblclick', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        syncState();
+        setInterval(syncState, 500);
+
+        async function reportResolution() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            try {
+                await fetch('/api/report-resolution', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ width, height })
+                });
+            } catch (error) {
+                console.error('해상도 보고 실패:', error);
+            }
+        }
+
+        reportResolution();
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(reportResolution, 500);
+        });
+
+        document.addEventListener('click', function() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.log(`Error: ${err.message}`);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
