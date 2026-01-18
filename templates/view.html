@@ -220,9 +220,8 @@
                     mediaContent.innerHTML = `
                         <div class="youtube-container">
                             <iframe 
-                                src="https://www.youtube.com/embed/${media.youtube_id}?autoplay=1&mute=0&controls=0&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1&origin=${window.location.origin}"
+                                src="https://www.youtube.com/embed/${media.youtube_id}?autoplay=1&mute=0&controls=0&rel=0&modestbranding=1&iv_load_policy=3&enablejsapi=1"
                                 frameborder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                 allow="autoplay; encrypted-media"
                                 allowfullscreen>
                             </iframe>
@@ -237,7 +236,7 @@
                 } else if (media.type === 'video' && media.url) {
                     mediaContent.innerHTML = `
                         <div class="image-container">
-                            <video src="${media.url}" autoplay muted loop style="width: 100%; height: 100%; object-fit: contain;"></video>
+                            <video src="${media.url}" autoplay loop style="width: 100%; height: 100%; object-fit: contain;"></video>
                         </div>
                     `;
                 } else {
@@ -299,11 +298,6 @@
                 document.documentElement.requestFullscreen().catch(err => {
                     console.log(`Error: ${err.message}`);
                 });
-            }
-            // 현재 재생 중인 비디오가 있다면 소리 켜기
-            const video = document.querySelector('video');
-            if (video) {
-                video.muted = false;
             }
         });
     </script>
