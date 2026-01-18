@@ -184,6 +184,7 @@ def cut_to_program():
     """미리보기를 프로그램 뷰로 전송 (컷)"""
     global state
     state['current_media'] = state['preview_media'].copy()
+    state['current_media']['cut_id'] = datetime.now().timestamp()
     return jsonify({'status': 'success', 'media': state['current_media']})
 
 @app.route('/api/files', methods=['GET'])
